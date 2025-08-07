@@ -10,6 +10,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
+find_package(PostgreSQL REQUIRED)
+
 # ===== Сборка core в динамическую библиотеку =====
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS ${SRC_DIR}/core/*.cpp)
 add_library(core SHARED ${CORE_SRC})
@@ -46,4 +48,6 @@ target_include_directories(server PRIVATE
   ${SRC_DIR}/dto
   ${SRC_DIR}/core
 )
+target_include_directories(server PRIVATE ${PostgreSQL_INCLUDE_DIRS})
+target_link_libraries(server PRIVATE ${PostgreSQL_LIBRARIES})
 target_link_libraries(server PRIVATE core)
