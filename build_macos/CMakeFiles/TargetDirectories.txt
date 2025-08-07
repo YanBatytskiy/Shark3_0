@@ -1,0 +1,5 @@
+/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos/CMakeFiles/core.dir
+/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos/CMakeFiles/client.dir
+/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos/CMakeFiles/server.dir
+/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos/CMakeFiles/edit_cache.dir
+/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos/CMakeFiles/rebuild_cache.dir

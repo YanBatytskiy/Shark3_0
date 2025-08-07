@@ -1,0 +1,1 @@
+/usr/bin/c++ -O0 -g CMakeFiles/server.dir/src/server/0_init_system.cpp.o CMakeFiles/server.dir/src/server/server.cpp.o CMakeFiles/server.dir/src/server/server_session.cpp.o -o server  -Wl,-rpath,/home/yanbatytskiy/SynologyDrive/CPP/Linux/GitProjects/Shark2_0/build_macos libcore.so 
