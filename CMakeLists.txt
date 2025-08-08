@@ -1,53 +1,76 @@
 cmake_minimum_required(VERSION 3.16)
-project(Shark2_0)
+project(Shark2_0 LANGUAGES CXX)
 
+# --- компилятор и флаги
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_BUILD_TYPE Debug)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 
+# --- пути
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
+# --- PostgreSQL (libpq)
 find_package(PostgreSQL REQUIRED)
 
-# ===== Сборка core в динамическую библиотеку =====
-file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS ${SRC_DIR}/core/*.cpp)
-add_library(core SHARED ${CORE_SRC})
-target_include_directories(core PUBLIC
-  ${SRC_DIR}
-  ${SRC_DIR}/core
+# ===== core: динамическая библиотека =====
+file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS
+  ${SRC_DIR}/core/*.cpp
 )
 
-# ===== Сборка client =====
+add_library(core SHARED ${CORE_SRC})
+
+target_include_directories(core
+  PUBLIC
+    ${SRC_DIR}
+    ${SRC_DIR}/core
+    ${PostgreSQL_INCLUDE_DIRS}         # <- libpq заголовки для всех пользователей core
+)
+
+# Лучше явно линковать на IMPORTED-таргет, если он есть
+# (модуль FindPostgreSQL в новых CMake обычно даёт PostgreSQL::PostgreSQL)
+if(TARGET PostgreSQL::PostgreSQL)
+  target_link_libraries(core PUBLIC PostgreSQL::PostgreSQL)
+else()
+  target_link_libraries(core PUBLIC ${PostgreSQL_LIBRARIES})
+endif()
+
+# ===== client =====
 file(GLOB_RECURSE CLIENT_SRC CONFIGURE_DEPENDS
   ${SRC_DIR}/client/*.cpp
   ${SRC_DIR}/dto/*.cpp
   ${SRC_DIR}/server/server_session.cpp
   ${SRC_DIR}/server/0_init_system.cpp
 )
+
 add_executable(client ${CLIENT_SRC})
+
 target_include_directories(client PRIVATE
   ${SRC_DIR}
   ${SRC_DIR}/client
   ${SRC_DIR}/dto
   ${SRC_DIR}/core
 )
-target_link_libraries(client PRIVATE core)
 
-# ===== Сборка server =====
+target_link_libraries(client PRIVATE core)  # libpq придёт транзитивно через core
+
+# ===== server =====
 file(GLOB_RECURSE SERVER_SRC CONFIGURE_DEPENDS
   ${SRC_DIR}/server/*.cpp
   ${SRC_DIR}/dto/*.cpp
 )
+
 add_executable(server ${SERVER_SRC})
+
 target_include_directories(server PRIVATE
   ${SRC_DIR}
   ${SRC_DIR}/server
   ${SRC_DIR}/dto
   ${SRC_DIR}/core
 )
-target_include_directories(server PRIVATE ${PostgreSQL_INCLUDE_DIRS})
-target_link_libraries(server PRIVATE ${PostgreSQL_LIBRARIES})
-target_link_libraries(server PRIVATE core)
+
+target_link_libraries(server PRIVATE core)  # достаточно; отдельная линковка на libpq не нужна

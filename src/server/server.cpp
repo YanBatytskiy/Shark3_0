@@ -1,5 +1,6 @@
 #include "0_init_system.h"
 #include "chat_system/chat_system.h"
+#include "postgres_db.h"
 #include "server_session.h"
 #include "system/system_function.h"
 #include <arpa/inet.h>
@@ -13,8 +14,18 @@ int main() {
   std::setlocale(LC_ALL, "");
   enableUTF8Console();
 
-  ChatSystem serverSystem;
   std::cout << "Server" << std::endl;
+
+  ChatSystem serverSystem;
+  PostgressDatabase postgress("host=shark-database.czmyiskayc7p.eu-north-1.rds.amazonaws.com port=5432 "
+                              "dbname=sharkdb user=postgres password=oMana!row74#");
+
+  if (!postgress.isConnected()) {
+    std::cerr << "[DB FATAL] Cannot connect to database." << std::endl;
+    return 1;
+  }
+
+  serverSystem.setDatabase(postgress.getConnection());
 
   ServerSession serverSession(serverSystem);
 
@@ -57,8 +68,7 @@ int main() {
     return 1;
   }
 
-  std::cout << "[INFO] TCP-сервер запущен на порту "
-            << serverSession.getServerConnectionConfig().port << std::endl;
+  std::cout << "[INFO] TCP-сервер запущен на порту " << serverSession.getServerConnectionConfig().port << std::endl;
 
   // Главный цикл
   while (true) {

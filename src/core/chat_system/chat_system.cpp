@@ -5,18 +5,18 @@
 #include "exception/validation_exception.h"
 #include "system/system_function.h"
 #include "user/user_chat_list.h"
+#include <cstdint>
 #include <iostream>
 #include <memory>
-#include <cstdint>
+#include <postgresql/libpq-fe.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #endif
-
 
 /**
  * @brief Default constructor for ChatSystem.
@@ -24,6 +24,9 @@
 ChatSystem::ChatSystem() {}
 
 // getters
+
+PGconn *ChatSystem::getPGConnection() { return _pqConnection; }
+const PGconn *ChatSystem::getPGConnection() const { return _pqConnection; }
 
 const bool &ChatSystem::getIsServerStatus() const { return _isServerStatus; }
 
@@ -71,6 +74,8 @@ const std::unordered_map<std::string, std::shared_ptr<User>> &ChatSystem::getLog
 }
 
 // setters
+
+  void ChatSystem::setDatabase(PGconn* connection) {_pqConnection = connection;}
 
 void ChatSystem::setIsServerStatus(const bool &serverStatus) { _isServerStatus = serverStatus; }
 

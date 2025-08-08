@@ -1,14 +1,15 @@
 #pragma once
 #include "chat/chat.h"
 #include "dto/dto_struct.h"
+#include "libpq-fe.h"
 #include "user/user.h"
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
-#include <cstdint>
 
 #define MESSAGE_LENGTH 4096 // Максимальный размер буфера для данных
 #define PORT 50000          // Будем использовать этот номер порта
@@ -33,6 +34,8 @@ private:
   std::deque<std::pair<PacketDTO, std::string>> _packetReceivedDeque;
   std::deque<std::pair<PacketListDTO, std::string>> _packetForSendDeque;
 
+  PGconn *_pqConnection;
+
 public:
   /**
    * @brief Default constructor for ChatSystem.
@@ -45,6 +48,9 @@ public:
   ~ChatSystem() = default;
 
   // getters
+
+  PGconn *getPGConnection();
+  const PGconn *getPGConnection() const;
 
   const bool &getIsServerStatus() const;
 
@@ -87,6 +93,8 @@ public:
   //
   //
   // setters
+
+  void setDatabase(PGconn* connection);
 
   void setIsServerStatus(const bool &serverStatus);
 
