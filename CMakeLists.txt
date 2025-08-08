@@ -17,6 +17,9 @@ set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 # --- PostgreSQL (libpq)
 find_package(PostgreSQL REQUIRED)
 
+# --- путь к nlohmann/json (APT ставит сюда)
+set(NLOHMANN_JSON_INCLUDE_DIR "/usr/include")
+
 # ===== core: динамическая библиотека =====
 file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS
   ${SRC_DIR}/core/*.cpp
@@ -28,11 +31,10 @@ target_include_directories(core
   PUBLIC
     ${SRC_DIR}
     ${SRC_DIR}/core
-    ${PostgreSQL_INCLUDE_DIRS}         # <- libpq заголовки для всех пользователей core
+    ${PostgreSQL_INCLUDE_DIRS}
+    ${NLOHMANN_JSON_INCLUDE_DIR}  # <- json.hpp
 )
 
-# Лучше явно линковать на IMPORTED-таргет, если он есть
-# (модуль FindPostgreSQL в новых CMake обычно даёт PostgreSQL::PostgreSQL)
 if(TARGET PostgreSQL::PostgreSQL)
   target_link_libraries(core PUBLIC PostgreSQL::PostgreSQL)
 else()
@@ -54,9 +56,10 @@ target_include_directories(client PRIVATE
   ${SRC_DIR}/client
   ${SRC_DIR}/dto
   ${SRC_DIR}/core
+  ${NLOHMANN_JSON_INCLUDE_DIR}  # <- json.hpp
 )
 
-target_link_libraries(client PRIVATE core)  # libpq придёт транзитивно через core
+target_link_libraries(client PRIVATE core)
 
 # ===== server =====
 file(GLOB_RECURSE SERVER_SRC CONFIGURE_DEPENDS
@@ -71,6 +74,7 @@ target_include_directories(server PRIVATE
   ${SRC_DIR}/server
   ${SRC_DIR}/dto
   ${SRC_DIR}/core
+  ${NLOHMANN_JSON_INCLUDE_DIR}  # <- json.hpp
 )
 
-target_link_libraries(server PRIVATE core)  # достаточно; отдельная линковка на libpq не нужна
+target_link_libraries(server PRIVATE core)

@@ -1,5 +1,6 @@
 #include "0_init_system.h"
 #include "chat_system/chat_system.h"
+#include <nlohmann/json.hpp>
 #include "postgres_db.h"
 #include "server_session.h"
 #include "system/system_function.h"
@@ -9,6 +10,8 @@
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
+
+using json = nlohmann::json;
 
 int main() {
   std::setlocale(LC_ALL, "");

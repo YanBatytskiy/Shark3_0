@@ -22,3 +22,20 @@ PostgressDatabase::~PostgressDatabase() {
 bool PostgressDatabase::isConnected() const { return conn_ && PQstatus(conn_) == CONNECTION_OK; }
 
 PGconn *PostgressDatabase::getConnection() const { return conn_; }
+
+const std::string PostgressDatabase::getHost() const { return _host; }
+const std::string PostgressDatabase::getPort() const { return _port; }
+const std::string PostgressDatabase::getBaseName() const { return _baseName; }
+const std::string PostgressDatabase::getPassword() const { return _password; }
+
+const std::string PostgressDatabase::getConnectionString() const { return _connectionString; }
+
+// setters
+void PostgressDatabase::setHost(const std::string &host) { _host = host; }
+void PostgressDatabase::setPort(const std::string &port) { _port = port; }
+void PostgressDatabase::setBaseName(const std::string &baseName) { _baseName = baseName; }
+void PostgressDatabase::setPassword(const std::string &password) { _password = password; }
+
+void PostgressDatabase::setConnectionString(const std::string &connectionString) {
+  _connectionString = connectionString;
+}
