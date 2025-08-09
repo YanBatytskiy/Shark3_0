@@ -9,10 +9,12 @@
 #include "user/user.h"
 #include "user/user_chat_list.h"
 #include <cstdint>
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <vector>
-#include <ctime>
+
+void createBaseStructure() {}
 
 /**
  * @brief Updates the last read message index for the sender in a chat.
@@ -119,7 +121,7 @@ void systemInitForTest(ServerSession &serverSession) {
   // Создание пользователей
   std::string passwordHash = picosha2::hash256_hex_string(initUserPassword[0]);
   std::cout << passwordHash << std::endl;
-  
+
   auto Alex2104_ptr = std::make_shared<User>(
       UserData(initUserLogin[0], "Sasha", passwordHash, "...@gmail.com", "+111"));
   passwordHash = picosha2::hash256_hex_string(initUserPassword[1]);

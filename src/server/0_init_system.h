@@ -38,6 +38,8 @@ struct InitDataArray {
   virtual ~InitDataArray() = default;
 };
 
+void createBaseStructure();
+
 void changeLastReadIndexForSenderInit(const std::shared_ptr<User> &user, const std::shared_ptr<Chat> &chat);
 
 bool addMessageToChatInit( ServerSession& serverSession, const InitDataArray &initDataArray, std::shared_ptr<Chat> &chat);

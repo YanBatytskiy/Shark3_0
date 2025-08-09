@@ -1,12 +1,14 @@
 #include "0_init_system.h"
 #include "chat_system/chat_system.h"
-#include <nlohmann/json.hpp>
 #include "postgres_db.h"
 #include "server_session.h"
 #include "system/system_function.h"
 #include <arpa/inet.h>
 #include <cstring>
+#include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
+#include <string>
 #include <sys/socket.h>
 #include <thread>
 #include <unistd.h>
@@ -17,17 +19,35 @@ int main() {
   std::setlocale(LC_ALL, "");
   enableUTF8Console();
 
-  std::cout << "Server" << std::endl;
+  std::ifstream file(std::string(CONFIG_DIR) + "/connect_db.conf");
 
-  ChatSystem serverSystem;
-  PostgressDatabase postgress("host=shark-database.czmyiskayc7p.eu-north-1.rds.amazonaws.com port=5432 "
-                              "dbname=sharkdb user=postgres password=oMana!row74#");
+  json config;
+  file >> config;
+
+  PostgressDatabase postgress;
+
+  postgress.setHost(config["database"]["host"]);
+  postgress.setPort(config["database"]["port"]);
+  postgress.setBaseName(config["database"]["dbname"]);
+  postgress.setUser(config["database"]["user"]);
+  postgress.setPassword(config["database"]["password"]);
+
+  postgress.setConnectionString("host=" + postgress.getHost() + " port=" + std::to_string(postgress.getPort()) +
+                                " dbname=" + postgress.getBaseName() + " user=" + postgress.getUser() +
+                                " password=" + postgress.getPassword() + " sslmode=require");
+
+  postgress.makeConnection();
 
   if (!postgress.isConnected()) {
     std::cerr << "[DB FATAL] Cannot connect to database." << std::endl;
     return 1;
   }
 
+  std::cout << "Server" << std::endl;
+  std::cout << "Host: " << postgress.getHost() << std::endl;
+  std::cout << "Port: " << postgress.getPort() << std::endl;
+
+  ChatSystem serverSystem;
   serverSystem.setDatabase(postgress.getConnection());
 
   ServerSession serverSession(serverSystem);
