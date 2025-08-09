@@ -7,8 +7,9 @@
 #include "user/user_chat_list.h"
 #include <cstdint>
 #include <iostream>
-#include <memory>
+#include <iterator>
 #include <libpq-fe.h>
+#include <memory>
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -46,7 +47,6 @@ std::shared_ptr<Chat> ChatSystem::getChatById(std::size_t chatId) const {
 std::deque<std::pair<PacketDTO, std::string>> &ChatSystem::getPacketReceivedDeque() { return _packetReceivedDeque; }
 
 std::deque<std::pair<PacketListDTO, std::string>> &ChatSystem::getPacketForSendDeque() { return _packetForSendDeque; }
-
 /**
  * @brief Gets the list of users.
  * @return Const reference to the vector of users.
@@ -75,7 +75,7 @@ const std::unordered_map<std::string, std::shared_ptr<User>> &ChatSystem::getLog
 
 // setters
 
-  void ChatSystem::setDatabase(PGconn* connection) {_pqConnection = connection;}
+void ChatSystem::setDatabase(PGconn *connection) { _pqConnection = connection; }
 
 void ChatSystem::setIsServerStatus(const bool &serverStatus) { _isServerStatus = serverStatus; }
 

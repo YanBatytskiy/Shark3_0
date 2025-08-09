@@ -43,19 +43,23 @@ int main() {
     return 1;
   }
 
+  auto conn = postgress.getConnection();
+
   std::cout << "Server" << std::endl;
   std::cout << "Host: " << postgress.getHost() << std::endl;
   std::cout << "Port: " << postgress.getPort() << std::endl;
 
   ChatSystem serverSystem;
-  serverSystem.setDatabase(postgress.getConnection());
+  serverSystem.setDatabase(conn);
 
   ServerSession serverSession(serverSystem);
 
   serverSystem.setIsServerStatus(true);
   serverSession.setActiveUserSrv(nullptr);
-  systemInitForTest(serverSession);
 
+  if (!systemInitForTest(serverSession, conn)) {
+    return 1;
+  }
   // 🔧 Старт UDP discovery-сервера в потоке, без копирования
   std::thread([&serverSession]() {
     serverSession.runUDPServerDiscovery(serverSession.getServerConnectionConfig().port);

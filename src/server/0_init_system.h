@@ -38,10 +38,14 @@ struct InitDataArray {
   virtual ~InitDataArray() = default;
 };
 
-void createBaseStructure();
+bool fillClearBaseSQL(PGconn *conn);
 
-void changeLastReadIndexForSenderInit(const std::shared_ptr<User> &user, const std::shared_ptr<Chat> &chat);
+std::multimap<int, std::string> fillSQLRequests();
+    
+bool initDatabaseOnServerSQL(PGconn *conn);
+
+    void changeLastReadIndexForSenderInit(const std::shared_ptr<User> &user, const std::shared_ptr<Chat> &chat);
 
 bool addMessageToChatInit( ServerSession& serverSession, const InitDataArray &initDataArray, std::shared_ptr<Chat> &chat);
 
-void systemInitForTest(ServerSession &serverSession);
+bool systemInitForTest(ServerSession &serverSession,PGconn *conn);

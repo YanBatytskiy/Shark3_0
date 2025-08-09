@@ -2,8 +2,10 @@
 #include "chat/chat.h"
 #include "exception/login_exception.h"
 #include "exception/network_exception.h"
+#include "exception/sql_exception.h"
 #include "exception/validation_exception.h"
 #include "message/message_content_struct.h"
+#include "server/sql_server.h"
 #include "server_session.h"
 #include "system/picosha2.h"
 #include "user/user.h"
@@ -11,11 +13,165 @@
 #include <cstdint>
 #include <ctime>
 #include <iostream>
+#include <iterator>
+#include <libpq-fe.h>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <string>
 #include <vector>
 
-void createBaseStructure() {}
+bool fillClearBaseSQL(PGconn *conn, std::multimap<int, std::string> &sqlRequests) {
 
+  PGresult *result = PQexec(conn, "BEGIN");
+  try {
+    // открываем транзакцию
+
+    if (!result || PQresultStatus(result) != PGRES_COMMAND_OK) {
+      if (result)
+        PQclear(result);
+      throw exc::SQLExecException("Открытие транзакции.");
+    }
+    PQclear(result);
+    int i = 1;
+
+    for (const auto &request : sqlRequests) {
+
+      // выполнили запрос
+      result = ExecSQL(conn, request.second);
+
+      if (!result) {
+        throw exc::SQLCreateTableException("Table" + std::to_string(i));
+      }
+
+      // определили результат
+      auto st = PQresultStatus(result);
+      if (st != PGRES_COMMAND_OK && st != PGRES_TUPLES_OK) {
+        PQclear(result);
+        throw exc::SQLCreateTableException("Table" + std::to_string(i));
+      }
+      PQclear(result);
+      ++i;
+    } // for
+  } // try
+  catch (exc::SQLCreateTableException &ex) {
+    std::cerr << ex.what() << "\n"
+              << " Проверьте SQL запросы." << "\n";
+    result = PQexec(conn, "ROLLBACK");
+    if (result)
+      PQclear(result);
+    return false;
+  } catch (exc::SQLExecException &ex) {
+    std::cerr << ex.what() << "\n"
+              << " Проверьте доступ к базе." << "\n";
+    result = PQexec(conn, "ROLLBACK");
+    if (result)
+      PQclear(result);
+    return false;
+  }
+  result = PQexec(conn, "COMMIT");
+  if (!result)
+    return false;
+  bool ok = (PQresultStatus(result) == PGRES_COMMAND_OK);
+  PQclear(result);
+  return ok;
+}
+//
+//
+//
+std::multimap<int, std::string> fillSQLRequests() {
+  using json = nlohmann::json;
+  std::multimap<int, std::string> result;
+
+  try {
+    result.clear();
+
+    std::ifstream file_schema(std::string(CONFIG_DIR) + "/schema_db.conf");
+    if (!file_schema.is_open()) {
+      throw exc::SQLReadConfigException("schema_db.conf: файл не открыт\n");
+    }
+    json config;
+    try {
+      file_schema >> config;
+    } catch (const std::exception &e) {
+      throw exc::SQLReadConfigException("schema_db.conf: ошибка JSON: ");
+    }
+
+    int quantity = 0;
+    try {
+      quantity = config.at("database").at("quantity").get<int>();
+
+    } catch (const std::exception &e) {
+      throw exc::SQLReadConfigException("schema_db.conf: quantity: ");
+    }
+
+    if (quantity <= 0)
+      throw exc::SQLReadConfigException("schema_db.conf: quantity <= 0.");
+
+    for (int i = 1; i <= quantity; ++i) {
+      // взяли очередную таблицу
+      std::string tableKey = "table" + std::to_string(i);
+      std::string tableName;
+      try {
+        tableName = config.at("database").at(tableKey).get<std::string>();
+
+      } catch (const std::exception &e) {
+        throw exc::SQLReadConfigException("schema_db.conf: отсутствует или неверный тип ключа: " + tableKey);
+      }
+
+      // загрузили запрос из таблицы
+      std::ifstream file_create(std::string(CONFIG_DIR) + "/init_scripts/create_tables/" + tableName + ".sql");
+      if (!file_create.is_open()) {
+        throw exc::SQLReadConfigException("Не найден файл: " + tableName + ".sql");
+      }
+
+      std::string sql((std::istreambuf_iterator<char>(file_create)), std::istreambuf_iterator<char>());
+      if (sql.empty()) {
+        throw exc::SQLReadConfigException("Пустой SQL-файл: " + tableName + ".sql");
+      }
+
+      result.insert({i, sql});
+
+    } // for
+
+  } // try
+  catch (exc::SQLReadConfigException &ex) {
+    std::cerr << ex.what() << "\n"
+              << " Проверьте конфигурационные файлы." << "\n";
+
+    result.clear();
+    return result;
+  }
+
+  return result;
+}
+//
+//
+//
+bool initDatabaseOnServerSQL(PGconn *conn) {
+
+  std::multimap<int, std::string> sqlRequests;
+  sqlRequests.clear();
+
+  sqlRequests = fillSQLRequests();
+
+  // проверяем пустая ли база
+  bool emptyResult = checkEmptyBaseSQL(conn);
+
+  // если база пустая, то мы ее заполняем
+  if (emptyResult) {
+    if (!fillClearBaseSQL(conn, sqlRequests) || sqlRequests.empty())
+      return false;
+  }
+  // если база не пустая, то мы проверяем ее целостность
+  else {
+    return true;
+    // если база битая, предлагаем пользователю либо пересоздать ее либо выйти
+    clearBaseSQL(conn);
+  }
+  return true;
+}
+//
+//
 /**
  * @brief Updates the last read message index for the sender in a chat.
  * @param user shared pointer to the user (sender).
@@ -117,7 +273,13 @@ const std::string initUserPassword[] = {"1", "1", "1", "1", "1", "1", "1", "1"};
 
 const std::string initUserLogin[] = {"a", "e", "s", "v", "m", "f", "ver", "y"};
 
-void systemInitForTest(ServerSession &serverSession) {
+bool systemInitForTest(ServerSession &serverSession, PGconn *conn) {
+
+  if (!initDatabaseOnServerSQL(conn)) {
+    std::cout << "Не удалось инициаизировать базу на сервере. \n";
+    return false;
+  };
+
   // Создание пользователей
   std::string passwordHash = picosha2::hash256_hex_string(initUserPassword[0]);
   std::cout << passwordHash << std::endl;
@@ -323,4 +485,5 @@ void systemInitForTest(ServerSession &serverSession) {
   // проверки
   //    changeLastReadIndexForSender(Elena1510_ptr, chat_ptr);
   chat_ptr->printChat(Elena1510_ptr);
+  return true;
 }
