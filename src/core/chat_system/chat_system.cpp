@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <iostream>
 #include <memory>
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 #ifdef _WIN32
 #include <winsock2.h>
